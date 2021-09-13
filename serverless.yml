@@ -1,0 +1,281 @@
+# serverless.yml
+
+service: serverless-flask
+
+plugins:
+  - serverless-python-requirements
+  - serverless-wsgi
+  # - serverless-s3-sync
+custom:
+  wsgi:
+    app: app.app
+    packRequirements: false
+  pythonRequirements:
+    dockerizePip: non-linux
+# # A simple configuration for copying static assets
+#   s3Sync:
+#     - bucketName: ${self:custom.s3.bucket} # required
+#       bucketprefix: assets/ # optional
+#       localDir: ./Scripts # required
+
+provider:
+  name: aws
+  runtime: python3.6
+  stage: dev
+  region: us-east-1
+
+functions:
+  app:
+    handler: wsgi_handler.handler
+    events:
+      - http: ANY /
+
+resources:
+  Resources:
+    AssetsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: my-site-assets
+    SampleManagedPolicy:
+      Type: 'AWS::IAM::ManagedPolicy'
+      Properties:
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:*
+            - glue:*
+            Resource:
+            - "*"
+        Roles:
+          - !Ref IamRoleLambdaExecution
+    IamRoleGlueExecution:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - glue.amazonaws.com
+            Action:
+            - sts:AssumeRole
+        Policies:
+        - PolicyName:
+            Fn::Join:
+            - "-"
+            - - serverless-flask
+              - dev
+              - glue
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+                - s3:*
+                - iam:*
+                - glue:*
+              Resource:
+                - '*'
+            - Effect: Allow
+              Action:
+              - logs:CreateLogStream
+              - logs:CreateLogGroup
+              Resource:
+              - Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/glue/serverless-flask-dev*:*
+            - Effect: Allow
+              Action:
+              - logs:PutLogEvents
+              Resource:
+              - Fn::Sub: arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/glue/serverless-flask-dev*:*:*
+        Path: "/"
+        RoleName:
+          Fn::Join:
+          - "-"
+          - - serverless-flask
+            - dev
+            - Ref: AWS::Region
+            - glueRole
+    glueJob:
+      Type: AWS::Glue::Job
+      Properties:
+        Command:
+          Name: glueetl
+          ScriptLocation:
+            !Sub
+              - s3://${BucketName}/Scripts/process_data_glue.py
+              - {BucketName: !Ref ServerlessDeploymentBucket}
+        DefaultArguments:
+          '--input-file-path': ''
+          '--role_name': !Ref IamRoleGlueExecution
+        Description: "Glue Job for processing input data"
+        GlueVersion: "2.0"
+        Name: "serverless-flask-dev-ProcessData"
+        Role: !Ref IamRoleGlueExecution
+    AddCheckJobStatusResource:
+      Type: AWS::ApiGateway::Resource
+      Properties:
+        ParentId: !GetAtt "ApiGatewayRestApi.RootResourceId"
+        PathPart: "checkjobstatus"
+        RestApiId: !Ref ApiGatewayRestApi
+    AddDownloadResource:
+      Type: AWS::ApiGateway::Resource
+      Properties:
+        ParentId: !GetAtt "ApiGatewayRestApi.RootResourceId"
+        PathPart: "download"
+        RestApiId: !Ref ApiGatewayRestApi
+    AddDownloadFileResource:
+      Type: AWS::ApiGateway::Resource
+      Properties:
+        ParentId: !GetAtt "ApiGatewayRestApi.RootResourceId"
+        PathPart: "downloadfile"
+        RestApiId: !Ref ApiGatewayRestApi
+    AddProcessFileResource:
+      Type: AWS::ApiGateway::Resource
+      Properties:
+        ParentId: !GetAtt "ApiGatewayRestApi.RootResourceId"
+        PathPart: "processfile"
+        RestApiId: !Ref ApiGatewayRestApi
+    AddUploadFileResource:
+      Type: AWS::ApiGateway::Resource
+      Properties:
+        ParentId: !GetAtt "ApiGatewayRestApi.RootResourceId"
+        PathPart: "uploadfile"
+        RestApiId: !Ref ApiGatewayRestApi
+    apiGatewayCheckJobStatusResourceMethod:
+      Type: AWS::ApiGateway::Method
+      Properties:
+        HttpMethod: ANY
+        RequestParameters: {}
+        ResourceId: !Ref AddCheckJobStatusResource
+        RestApiId: !Ref ApiGatewayRestApi
+        ApiKeyRequired: false
+        AuthorizationType: NONE
+        Integration:
+          IntegrationHttpMethod: POST
+          Type: AWS_PROXY
+          Uri:
+            Fn::Join:
+            - ''
+            - - 'arn:'
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - ":lambda:path/2015-03-31/functions/"
+              - Fn::GetAtt:
+                - AppLambdaFunction
+                - Arn
+              - "/invocations"
+        MethodResponses: []
+      DependsOn:
+      - AppLambdaPermissionApiGateway
+    apiGatewayDownloadFileStatusResourceMethod:
+      Type: AWS::ApiGateway::Method
+      Properties:
+        HttpMethod: ANY
+        RequestParameters: {}
+        ResourceId: !Ref AddDownloadFileResource
+        RestApiId: !Ref ApiGatewayRestApi
+        ApiKeyRequired: false
+        AuthorizationType: NONE
+        Integration:
+          IntegrationHttpMethod: POST
+          Type: AWS_PROXY
+          Uri:
+            Fn::Join:
+            - ''
+            - - 'arn:'
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - ":lambda:path/2015-03-31/functions/"
+              - Fn::GetAtt:
+                - AppLambdaFunction
+                - Arn
+              - "/invocations"
+        MethodResponses: []
+      DependsOn:
+      - AppLambdaPermissionApiGateway
+    apiGatewayDownloadResourceMethod:
+      Type: AWS::ApiGateway::Method
+      Properties:
+        HttpMethod: ANY
+        RequestParameters: {}
+        ResourceId: !Ref AddDownloadResource
+        RestApiId: !Ref ApiGatewayRestApi
+        ApiKeyRequired: false
+        AuthorizationType: NONE
+        Integration:
+          IntegrationHttpMethod: POST
+          Type: AWS_PROXY
+          Uri:
+            Fn::Join:
+            - ''
+            - - 'arn:'
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - ":lambda:path/2015-03-31/functions/"
+              - Fn::GetAtt:
+                - AppLambdaFunction
+                - Arn
+              - "/invocations"
+        MethodResponses: []
+      DependsOn:
+      - AppLambdaPermissionApiGateway
+    apiGatewayProcessFileResourceMethod:
+      Type: AWS::ApiGateway::Method
+      Properties:
+        HttpMethod: ANY
+        RequestParameters: {}
+        ResourceId: !Ref AddProcessFileResource
+        RestApiId: !Ref ApiGatewayRestApi
+        ApiKeyRequired: false
+        AuthorizationType: NONE
+        Integration:
+          IntegrationHttpMethod: POST
+          Type: AWS_PROXY
+          Uri:
+            Fn::Join:
+            - ''
+            - - 'arn:'
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - ":lambda:path/2015-03-31/functions/"
+              - Fn::GetAtt:
+                - AppLambdaFunction
+                - Arn
+              - "/invocations"
+        MethodResponses: []
+      DependsOn:
+      - AppLambdaPermissionApiGateway
+    apiGatewayUploadFileResourceMethod:
+      Type: AWS::ApiGateway::Method
+      Properties:
+        HttpMethod: ANY
+        RequestParameters: {}
+        ResourceId: !Ref AddUploadFileResource
+        RestApiId: !Ref ApiGatewayRestApi
+        ApiKeyRequired: false
+        AuthorizationType: NONE
+        Integration:
+          IntegrationHttpMethod: POST
+          Type: AWS_PROXY
+          Uri:
+            Fn::Join:
+            - ''
+            - - 'arn:'
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - ":lambda:path/2015-03-31/functions/"
+              - Fn::GetAtt:
+                - AppLambdaFunction
+                - Arn
+              - "/invocations"
+        MethodResponses: []
+      DependsOn:
+      - AppLambdaPermissionApiGateway
