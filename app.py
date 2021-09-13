@@ -13,10 +13,11 @@ UPLOAD_FOLDER = 'uploads/'
 DOWNLOAD_FOLDER = 'output_file/'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['DOWNLOAD_FOLDER'] = DOWNLOAD_FOLDER
-BUCKET_NAME = 'serverless-flask-dev-serverlessdeploymentbucket-1wdb3e4zzsp3'
+BUCKET_NAME = cf.describe_stacks(eStackName='serverless-flask-dev')['Stacks'][0]['Outputs'][2]['OutputValue']
 
 s3 = boto3.client('s3')
 glue = boto3.client('glue')
+cf =  boto3.client('cloudformation')
 global job_id
 thismodule.input_file_name = ''
 global output_file_name
