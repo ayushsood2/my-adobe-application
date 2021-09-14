@@ -7,6 +7,7 @@ import time
 import sys
 import subprocess
 import awswrangler as wr
+import pandas as pd
 
 thismodule = sys.modules[__name__]
 app = Flask(__name__, template_folder='templates')
@@ -26,15 +27,31 @@ GLUE_DATABASE_NAME = cf.describe_stack_resource(
 )['StackResourceDetail']['PhysicalResourceId']
 GlUE_SCRIPT = 'Scripts/process_data_glue.py'
 
+#Create Glue Catalog Tables and write partitions
 def upload_to_athena(path, table_name, data_type):
-    hits_data_df = wr.s3.read_csv(path, delimiter = '\t')
-    wr.s3.to_csv(
-        df=hits_data_df,
-        path=f's3://{BUCKET_NAME}/GlueCatalog/hits_data/{data_type}/',
-        dataset=True,
-        database=GLUE_DATABASE_NAME,
-        table=table_name
-    )
+    df = wr.s3.read_csv(path, delimiter = '\t')
+    if table_name == 'hits_data_raw':
+        df['year'] = pd.DatetimeIndex(df['date_time']).year
+        df['month'] = pd.DatetimeIndex(df['date_time']).month
+        df['day'] = pd.DatetimeIndex(df['date_time']).day
+        df['hour'] = pd.DatetimeIndex(df['date_time']).hour
+        wr.s3.to_parquet(
+            df=df,
+            path=f's3://{BUCKET_NAME}/GlueCatalog/hits_data/{data_type}/',
+            dataset=True,
+            database=GLUE_DATABASE_NAME,
+            table=table_name,
+            partition_cols=["Year", "Month", "Day", "Hour"]
+        )
+    elif table_name == 'revenue_data':
+        wr.s3.to_parquet(
+            df=df,
+            path=f's3://{BUCKET_NAME}/GlueCatalog/hits_data/{data_type}/',
+            dataset=True,
+            database=GLUE_DATABASE_NAME,
+            table=table_name
+            )
+
 # Upload API
 @app.route("/uploadfile", methods=['GET', 'POST'])
 def upload_file():
