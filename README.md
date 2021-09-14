@@ -16,3 +16,7 @@ Adobe data processing flask application installation steps
 https://us-west-2.quicksight.aws.amazon.com/sn/dashboards/e4da48b9-b333-4022-aa1c-1e867abd7a75
 
 
+# Architecture
+
+![Image](https://github.com/ayushsood2/my-adobe-application/blob/main/Adobe%20Challenge%20Architecture.png)
+
