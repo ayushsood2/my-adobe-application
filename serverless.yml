@@ -12,11 +12,6 @@ custom:
     packRequirements: false
   pythonRequirements:
     dockerizePip: non-linux
-# # A simple configuration for copying static assets
-#   s3Sync:
-#     - bucketName: ${self:custom.s3.bucket} # required
-#       bucketprefix: assets/ # optional
-#       localDir: ./Scripts # required
 
 provider:
   name: aws
@@ -32,6 +27,17 @@ functions:
 
 resources:
   Resources:
+    ServerlessGlueCatalogDatabase:
+      Type: AWS::Glue::Database
+      Properties:
+        CatalogId: !Ref AWS::AccountId
+        DatabaseInput:
+          Name: serverless-hits-data
+          Description: Database to hold tables for hits data
+          LocationUri:
+            !Sub
+              - s3://${BucketName}/GlueCatalog/hits_data/
+              - {BucketName: !Ref ServerlessDeploymentBucket}
     SampleManagedPolicy:
       Type: 'AWS::IAM::ManagedPolicy'
       Properties:
@@ -43,6 +49,7 @@ resources:
             - s3:*
             - glue:*
             - cloudformation:*
+            - athena:*
             Resource:
             - "*"
         Roles:
