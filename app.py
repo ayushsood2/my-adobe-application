@@ -6,6 +6,8 @@ from datetime import datetime
 import time
 import sys
 import subprocess
+import awswrangler as wr
+import pandas as pd
 
 thismodule = sys.modules[__name__]
 app = Flask(__name__, template_folder='templates')
@@ -18,8 +20,21 @@ global job_id
 thismodule.input_file_name = ''
 global output_file_name
 BUCKET_NAME = cf.describe_stacks(StackName='serverless-flask-dev')['Stacks'][0]['Outputs'][2]['OutputValue']
+GLUE_DATABASE_NAME = cf.describe_stack_resource(
+    StackName='serverless-flask-dev',
+    LogicalResourceId='ServerlessGlueCatalogDatabase'
+)['StackResourceDetail']['PhysicalResourceId']
 GlUE_SCRIPT = 'Scripts/process_data_glue.py'
 
+def upload_to_athena(path, table_name, data_type):
+    hits_data_df = wr.s3.read_csv(path, delimiter = '\t')
+    wr.catalog.to_csv(
+        df=hits_data_df,
+        path=f's3://{BUCKET_NAME}/GlueCatalog/hits_data/{data_type}/',
+        dataset=True,
+        database=GLUE_DATABASE_NAME,
+        table="hits_data_raw"
+    )
 # Upload API
 @app.route("/uploadfile", methods=['GET', 'POST'])
 def upload_file():
@@ -46,7 +61,9 @@ def upload_file():
                     Filename="/tmp/{}".format(input_file_name),
                     Key = f'input_file/{input_file_name}'
                 )
-                msg = f"Upload Done at {BUCKET_NAME}/input_file/{input_file_name} ! "
+                uploaded_file_path = f's3://{BUCKET_NAME}/input_file/{input_file_name}''
+                upload_to_athena(uploaded_file_path, "hits_data_raw", "raw")
+                msg = f"Upload Done at {uploaded_file_path} ! "
             print("saved file successfully")
             return render_template('upload_complete.html',msg = msg)
     return render_template('file_upload_to_s3.html')
@@ -92,7 +109,9 @@ def check_job_status():
 @app.route("/downloadfile", methods = ['GET', 'POST'])
 def download_file():
     thismodule.output_file_name= glue.get_job(JobName= 'process_data')['Job']['DefaultArguments']['--output-file-name']
-    msg = f"File Processed and uploaded at {BUCKET_NAME}/output_file/{output_file_name} ! "
+    output_file_path = f's3://{BUCKET_NAME}/output_file/{output_file_name}'
+    upload_to_athena(output_file_path, "revenue_data","processed")
+    msg = f"File Processed and uploaded at {output_file_path} ! "
     return render_template('downloading_file.html', msg = msg)
 
 #FileDownloadAPI
