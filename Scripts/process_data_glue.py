@@ -89,6 +89,7 @@ response = client.update_job(
         },
         'DefaultArguments': {
             '--output-file-name': f'{output_file_name}'
+            }
     }
 )
 
