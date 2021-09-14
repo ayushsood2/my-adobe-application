@@ -33,7 +33,7 @@ def upload_to_athena(path, table_name, data_type):
         path=f's3://{BUCKET_NAME}/GlueCatalog/hits_data/{data_type}/',
         dataset=True,
         database=GLUE_DATABASE_NAME,
-        table="hits_data_raw"
+        table=table_name
     )
 # Upload API
 @app.route("/uploadfile", methods=['GET', 'POST'])
