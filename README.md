@@ -4,7 +4,7 @@ Completely serverless flask, docker and AWS based web application with deploymen
 
 # Information about the workflow
 
-1. This application is based on `Serverless` Framwework and deploys the whole application through `cloudformation` templates.
+1. This application is based on `Serverless` Framework and deploys the whole application through `cloudformation` templates.
 2. Once the deployment completes and necessary infrastructure is ready on `AWS`, you will get a deployed  `API URL` to access the application.
 3. It takes input of valid `tsv` file from user through a `flask` based web UI.
 4. Once user provides the file and clicks on `upload` button, application uploads the file to an `S3` Bucket. It also paritions the data through `year, month, day and hour` and converts it to parquet format. It also creates a `Glue` catalog for the raw input data which can be accessed in `AWS Athena`.
