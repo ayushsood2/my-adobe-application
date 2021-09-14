@@ -7,7 +7,6 @@ import time
 import sys
 import subprocess
 import awswrangler as wr
-import pandas as pd
 
 thismodule = sys.modules[__name__]
 app = Flask(__name__, template_folder='templates')
