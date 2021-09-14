@@ -11,9 +11,10 @@ thismodule = sys.modules[__name__]
 app = Flask(__name__, template_folder='templates')
 UPLOAD_FOLDER = 'uploads/'
 DOWNLOAD_FOLDER = 'output_file/'
+GlUE_SCRIPT = 'Scripts/process_data_glue.py'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['DOWNLOAD_FOLDER'] = DOWNLOAD_FOLDER
-BUCKET_NAME = cf.describe_stacks(StackName='serverless-flask-dev')['Stacks'][0]['Outputs'][2]['OutputValue']
+# BUCKET_NAME = 'serverless-flask-dev-serverlessdeploymentbucket-1wdb3e4zzsp3'
 
 s3 = boto3.client('s3')
 glue = boto3.client('glue')
@@ -21,6 +22,7 @@ cf =  boto3.client('cloudformation')
 global job_id
 thismodule.input_file_name = ''
 global output_file_name
+BUCKET_NAME = cf.describe_stacks(StackName='serverless-flask-dev')['Stacks'][0]['Outputs'][2]['OutputValue']
 
 # Upload API
 @app.route("/uploadfile", methods=['GET', 'POST'])
@@ -116,8 +118,14 @@ def download():
     output = s3_client.meta.client.download_file(BUCKET_NAME,file_name , file_path)
     return send_file(file_path, as_attachment= True, attachment_filename=output_file_name)
 
+def upload_scripts():
+    s3.upload_file(Bucket = BUCKET_NAME,
+                    Filename = GlUE_SCRIPT ,
+                     Key = GlUE_SCRIPT)
+
 @app.route('/', methods=['GET', 'POST'])
 def homepage():
+    upload_scripts()
     return redirect(url_for('upload_file'))
 
 if __name__ == "__main__":
