@@ -11,6 +11,7 @@ import awswrangler as wr
 thismodule = sys.modules[__name__]
 app = Flask(__name__, template_folder='templates')
 
+
 # Define global variables
 s3 = boto3.client('s3')
 glue = boto3.client('glue')
@@ -27,7 +28,7 @@ GlUE_SCRIPT = 'Scripts/process_data_glue.py'
 
 def upload_to_athena(path, table_name, data_type):
     hits_data_df = wr.s3.read_csv(path, delimiter = '\t')
-    wr.catalog.to_csv(
+    wr.s3.to_csv(
         df=hits_data_df,
         path=f's3://{BUCKET_NAME}/GlueCatalog/hits_data/{data_type}/',
         dataset=True,
@@ -60,7 +61,7 @@ def upload_file():
                     Filename="/tmp/{}".format(input_file_name),
                     Key = f'input_file/{input_file_name}'
                 )
-                uploaded_file_path = f's3://{BUCKET_NAME}/input_file/{input_file_name}''
+                uploaded_file_path = f's3://{BUCKET_NAME}/input_file/{input_file_name}'
                 upload_to_athena(uploaded_file_path, "hits_data_raw", "raw")
                 msg = f"Upload Done at {uploaded_file_path} ! "
             print("saved file successfully")
@@ -129,6 +130,7 @@ def upload_scripts():
     s3.upload_file(Bucket = BUCKET_NAME,
                     Filename = GlUE_SCRIPT ,
                      Key = GlUE_SCRIPT)
+    s3.upload_file(Bucket = BUCKET_NAME, Filename = 'Scripts/awswrangler-layer-2.11.0-py3.6.zip',Key = 'Scripts/awswrangler-layer-2.11.0-py3.6.zip')
 
 #HOMEPAGE
 @app.route('/', methods=['GET', 'POST'])
