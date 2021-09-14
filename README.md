@@ -10,6 +10,7 @@ Adobe data processing flask application installation steps
 6. `cd my-adobe-application`
 7. Install serverless : `npm install -g serverless`
 8. Install wsgi plugin for `requirements.txt` : `npm install --save-dev serverless-wsgi serverless-python-requirements `
+9. Donwload awswrangler lamda layer  from here and copy it in Scripts folder:  https://github.com/awslabs/aws-data-wrangler/releases/download/2.11.0/awswrangler-layer-2.11.0-py3.6.zip
 
 # Quicksight Dashboard URL:
 
