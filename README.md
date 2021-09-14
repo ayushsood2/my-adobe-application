@@ -4,7 +4,7 @@ Adobe application installation steps
 1. Configure aws cli
 2. Install git
 3. Install Docker
-4. Install rpm
+4. Install npm
 5. git clone https://github.com/ayushsood2/my-adobe-application.git
 6. npm install -g serverless
 7. npm install --save-dev serverless-wsgi serverless-python-requirements 
