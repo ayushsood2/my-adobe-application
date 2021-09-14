@@ -9,13 +9,8 @@ import subprocess
 
 thismodule = sys.modules[__name__]
 app = Flask(__name__, template_folder='templates')
-UPLOAD_FOLDER = 'uploads/'
-DOWNLOAD_FOLDER = 'output_file/'
-GlUE_SCRIPT = 'Scripts/process_data_glue.py'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['DOWNLOAD_FOLDER'] = DOWNLOAD_FOLDER
-# BUCKET_NAME = 'serverless-flask-dev-serverlessdeploymentbucket-1wdb3e4zzsp3'
 
+# Define global variables
 s3 = boto3.client('s3')
 glue = boto3.client('glue')
 cf =  boto3.client('cloudformation')
@@ -23,6 +18,7 @@ global job_id
 thismodule.input_file_name = ''
 global output_file_name
 BUCKET_NAME = cf.describe_stacks(StackName='serverless-flask-dev')['Stacks'][0]['Outputs'][2]['OutputValue']
+GlUE_SCRIPT = 'Scripts/process_data_glue.py'
 
 # Upload API
 @app.route("/uploadfile", methods=['GET', 'POST'])
@@ -40,8 +36,6 @@ def upload_file():
             print('no filename')
             return redirect(request.url)
         else:
-            # filename = secure_filename(file.filename)
-            # print(filename)
             tsv = request.files['file']
             if tsv:
                 thismodule.input_file_name = secure_filename(tsv.filename)
@@ -54,16 +48,12 @@ def upload_file():
                 )
                 msg = f"Upload Done at {BUCKET_NAME}/input_file/{input_file_name} ! "
             print("saved file successfully")
-
-      # send file name as parameter to downlad
             return render_template('upload_complete.html',msg = msg)
-            # return redirect('/downloadfile/'+ filename)
     return render_template('file_upload_to_s3.html')
 
 #Process API
 @app.route("/processfile", methods = ['GET', 'POST'])
 def process_file():
-    print(request)
     if request.method == 'POST':
         print('Starting Glue job for processing')
         job_response = glue.start_job_run(
@@ -73,11 +63,10 @@ def process_file():
                     "--JOB_NAME": "serverless-flask-dev-ProcessData",
                     "--input_file_path": f"s3://{BUCKET_NAME}/input_file/{input_file_name}",
                     "--job-bookmark-option": "job-bookmark-enable",
-                    "--output-file-path": ""
+                    "--output-file-name": ""
                 }
             )
         thismodule.job_id =  job_response['JobRunId']
-        print(job_id)
         return redirect(url_for('check_job_status'))
 
     return render_template('processing_file.html')
@@ -85,7 +74,6 @@ def process_file():
 #Get Status API
 @app.route("/checkjobstatus", methods = ['GET', 'POST'])
 def check_job_status():
-    print(request)
     if request.method == 'GET':
         response = glue.get_job_run(
             JobName = 'serverless-flask-dev-ProcessData',
@@ -97,18 +85,17 @@ def check_job_status():
             return redirect(url_for('download_file'))
         else:
             print(f"job is still running with {status}")
-            # time.sleep(20)
             return render_template('processing_file.html')
-            # return redirect(url_for('check_job_status'))
     return render_template('processing_file.html')
 
+#DonwloadFile API
 @app.route("/downloadfile", methods = ['GET', 'POST'])
 def download_file():
     thismodule.output_file_name= glue.get_job(JobName= 'process_data')['Job']['DefaultArguments']['--output-file-name']
-    print(output_file_name)
     msg = f"File Processed and uploaded at {BUCKET_NAME}/output_file/{output_file_name} ! "
     return render_template('downloading_file.html', msg = msg)
 
+#FileDownloadAPI
 @app.route("/download", methods = ['GET', 'POST'])
 def download():
     s3_client = boto3.resource('s3')
@@ -118,11 +105,14 @@ def download():
     output = s3_client.meta.client.download_file(BUCKET_NAME,file_name , file_path)
     return send_file(file_path, as_attachment= True, attachment_filename=output_file_name)
 
+#Upload Glue Scripts to S3
 def upload_scripts():
+
     s3.upload_file(Bucket = BUCKET_NAME,
                     Filename = GlUE_SCRIPT ,
                      Key = GlUE_SCRIPT)
 
+#HOMEPAGE
 @app.route('/', methods=['GET', 'POST'])
 def homepage():
     upload_scripts()
