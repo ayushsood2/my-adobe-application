@@ -11,7 +11,7 @@ Adobe data processing flask application installation steps
 7. Install serverless : `npm install -g serverless`
 8. Install wsgi plugin for `requirements.txt` : `npm install --save-dev serverless-wsgi serverless-python-requirements `
 
-#Quicksight Dashboard URL:
+# Quicksight Dashboard URL:
 
 https://us-west-2.quicksight.aws.amazon.com/sn/dashboards/e4da48b9-b333-4022-aa1c-1e867abd7a75
 
