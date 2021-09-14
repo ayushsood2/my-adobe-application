@@ -32,10 +32,6 @@ functions:
 
 resources:
   Resources:
-    AssetsBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: my-site-assets
     SampleManagedPolicy:
       Type: 'AWS::IAM::ManagedPolicy'
       Properties:
@@ -46,6 +42,7 @@ resources:
             Action:
             - s3:*
             - glue:*
+            - cloudformation:*
             Resource:
             - "*"
         Roles:
