@@ -26,7 +26,7 @@ Completely serverless flask, docker and AWS based web application with deploymen
 
 # Installation Steps
 
-1. Clone the bramch : `git clone https://github.com/ayushsood2/my-adobe-application.git`
+1. Clone the branch : `git clone https://github.com/ayushsood2/my-adobe-application.git`
 2. `cd my-adobe-application`
 2. Install serverless : `npm install -g serverless`
 3. Install wsgi plugin for `requirements.txt` : `npm install --save-dev serverless-wsgi serverless-python-requirements `
