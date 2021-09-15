@@ -30,7 +30,7 @@ Completely serverless flask, docker and AWS based web application with deploymen
 2. `cd my-adobe-application`
 2. Install serverless : `npm install -g serverless`
 3. Install wsgi plugin for `requirements.txt` : `npm install --save-dev serverless-wsgi serverless-python-requirements `
-4. Donwload awswrangler lamda layer  from here and copy it in Scripts folder:  https://github.com/awslabs/aws-data-wrangler/releases/download/2.11.0/awswrangler-layer-2.11.0-py3.6.zip
+4. Donwload awswrangler lamda layer  from here:  https://github.com/awslabs/aws-data-wrangler/releases/download/2.11.0/awswrangler-layer-2.11.0-py3.6.zip. Rename it to `awswrangler.zip` and copy it in Scripts folder.
 5. `sls deploy` to deploy it.
 # Quicksight Dashboard URL:
 
