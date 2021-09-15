@@ -147,7 +147,7 @@ def upload_scripts():
     s3.upload_file(Bucket = BUCKET_NAME,
                     Filename = GlUE_SCRIPT ,
                      Key = GlUE_SCRIPT)
-    s3.upload_file(Bucket = BUCKET_NAME, Filename = 'Scripts/awswrangler-layer-2.11.0-py3.6.zip',Key = 'Scripts/awswrangler-layer-2.11.0-py3.6.zip')
+    s3.upload_file(Bucket = BUCKET_NAME, Filename = 'Scripts/awswrangler.zip',Key = 'Scripts/awswrangler.zip')
 
 #HOMEPAGE
 @app.route('/', methods=['GET', 'POST'])
